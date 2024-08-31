@@ -62,7 +62,10 @@ module.exports = (env, argv) => {
             new ProvidePlugin({
                 process: 'process/browser',
             }),
-            new DefinePlugin(envKeys),
+            new DefinePlugin({
+                ...envKeys,
+                'process.env.SECRET': JSON.stringify(process.env.SECRET || env.SECRET),
+            })
         ],
         module: {
             rules: [

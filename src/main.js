@@ -204,7 +204,6 @@ let lineaContract;
 let croakContract;
 
 const hash = (data, secret, efrogTYPE, address, level) => {
-    console.log(ethers.encodeBytes32String(secret))
     const encodedData = ethers.solidityPacked(
         ["uint256", "bytes32", "uint256", "address", "uint256"],
         [data, ethers.encodeBytes32String(secret), efrogTYPE, address, level]
