@@ -212,6 +212,7 @@ const hash = (data, secret, efrogTYPE, address, level) => {
 }
 
 const lastLevel = async () => {
+    await ensureCorrectNetwork()
     const address = await signer.getAddress()
     const filter = lineaContract.filters.LevelCompleted(address);
 
@@ -225,13 +226,54 @@ const lastLevel = async () => {
 }
 
 const getBalance = async () => {
+    await ensureCorrectNetwork()
     const address = await signer.getAddress()
     const balance = await lineaContract.balanceOf(address)
     window.godotFunctions.getBalance(parseInt(ethers.formatEther(balance)).toString())
 
 }
 
+const ensureCorrectNetwork = async () => {
+    const desiredChainId = "0xe705";
+    try {
+        await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: desiredChainId }],
+        });
+    } catch (error) {
+        if (error.code === 4902) {
+            await addNetwork(desiredChainId);
+        } else {
+            console.error("Network switch failed:", error);
+        }
+    }
+};
+
+const addNetwork = async (chainId) => {
+    try {
+        await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+                {
+                    chainId,
+                    chainName: "Linea Sepolia test network",
+                    rpcUrls: ["https://linea-sepolia.infura.io/v3/"],
+                    nativeCurrency: {
+                        name: "LineaETH",
+                        symbol: "LineaETH",
+                        decimals: 18,
+                    },
+                    blockExplorerUrls: ["https://sepolia.lineascan.build"],
+                },
+            ],
+        });
+    } catch (error) {
+        console.error("Failed to add network:", error);
+    }
+};
+
 const getNFTs = async () => {
+    await ensureCorrectNetwork()
     const address = await signer.getAddress()
     const filter = lineaContract.filters.RewardedNFT(address);
 
@@ -246,11 +288,11 @@ window.onload = async function() {
     if (window.ethereum == null) {
 
         alert("Please install metamask")
-        provider = ethers.getDefaultProvider()
 
     } else {
 
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        await ensureCorrectNetwork()
         provider = new ethers.BrowserProvider(window.ethereum)
 
         signer = await provider.getSigner();
@@ -273,10 +315,12 @@ window.externalator = {
 }
 
 window.spin = async () => {
+    await ensureCorrectNetwork()
     let tx = await croakContract.transfer(lineaAddress, ethers.parseUnits(SPIN_FEES, 18))
     await tx.wait()
 }
 window.levelComplete = async (level) => {
+    await ensureCorrectNetwork()
     const address = await signer.getAddress()
     const calculatedHash = hash(0, process.env.SECRET, 0, address, level)
     let tx = await lineaContract.distributeRewards(calculatedHash, 0, 0, address, level)
@@ -284,6 +328,7 @@ window.levelComplete = async (level) => {
     window.godotFunctions.levelComplete(level.toString())
 }
 window.generateNFT = async (name) => {
+    await ensureCorrectNetwork()
 
     const efrogType = EFROG_TYPES.indexOf(name)
     const address = await signer.getAddress()
@@ -295,6 +340,8 @@ window.generateNFT = async (name) => {
 
 }
 window.croakReward = async (amount) => {
+    await ensureCorrectNetwork()
+
     const address = await signer.getAddress()
     let data;
     if (amount === 10) {
@@ -309,6 +356,8 @@ window.croakReward = async (amount) => {
 }
 
 window.faucet = async (amount) => {
+    await ensureCorrectNetwork()
+
     let tx = await lineaContract.faucet()
     await tx.wait()
     await getBalance()
